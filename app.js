@@ -60,9 +60,9 @@ document.addEventListener("visibilitychange", () => {
 });
 
 const SCALE = {
-  santa: 0.18,
+  santa: 0.24,
   tree: 0.22,
-  ornament: 0.07,
+  ornament: 0.1,
 };
 
 let lastTime = 0;
@@ -284,9 +284,9 @@ function draw() {
   ctx.drawImage(
     images.santa,
     santa.x - santa.size * 0.5,
-    santa.y - santa.size * 0.5,
+    santa.y - santa.size * 0.6,
     santa.size,
-    santa.size
+    santa.size * 1.2
   );
 }
 
