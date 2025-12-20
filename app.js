@@ -67,7 +67,7 @@ const SCALE = {
   tree: 0.22,
   ornament: 0.1,
   stocking: 0.12,
-  coal: 0.08,
+  coal: 0.14,
   reindeer: 0.18,
 };
 
@@ -225,7 +225,7 @@ function spawnCoal() {
     y: -size,
     size,
     scale: SCALE.coal,
-    speed: unit * 0.06,
+    speed: unit * 0.12,
   });
 }
 
