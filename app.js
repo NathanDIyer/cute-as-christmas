@@ -261,32 +261,41 @@ function draw() {
   ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
   ctx.fillRect(0, height - groundHeight, width, groundHeight);
 
+  const treeAspect = images.tree.naturalHeight / images.tree.naturalWidth || 1;
   trees.forEach((tree) => {
+    const treeW = tree.size;
+    const treeH = tree.size * treeAspect;
     ctx.drawImage(
       images.tree,
-      tree.x - tree.size * 0.5,
-      tree.y - tree.size * 0.6,
-      tree.size,
-      tree.size * 1.2
+      tree.x - treeW * 0.5,
+      tree.y - treeH * 0.5,
+      treeW,
+      treeH
     );
   });
 
+  const ornamentAspect = images.ornament.naturalHeight / images.ornament.naturalWidth || 1;
   ornaments.forEach((ornament) => {
+    const ornW = ornament.size;
+    const ornH = ornament.size * ornamentAspect;
     ctx.drawImage(
       images.ornament,
-      ornament.x - ornament.size * 0.5,
-      ornament.y - ornament.size * 0.5,
-      ornament.size,
-      ornament.size
+      ornament.x - ornW * 0.5,
+      ornament.y - ornH * 0.5,
+      ornW,
+      ornH
     );
   });
 
+  const santaAspect = images.santa.naturalHeight / images.santa.naturalWidth || 1;
+  const santaW = santa.size;
+  const santaH = santa.size * santaAspect;
   ctx.drawImage(
     images.santa,
-    santa.x - santa.size * 0.5,
-    santa.y - santa.size * 0.6,
-    santa.size,
-    santa.size * 1.2
+    santa.x - santaW * 0.5,
+    santa.y - santaH * 0.5,
+    santaW,
+    santaH
   );
 }
 
