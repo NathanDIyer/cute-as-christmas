@@ -51,6 +51,14 @@ function startMusic() {
   }
 }
 
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && musicPlaying) {
+    music.pause();
+  } else if (!document.hidden && musicPlaying) {
+    music.play().catch(() => {});
+  }
+});
+
 const SCALE = {
   santa: 0.18,
   tree: 0.22,
