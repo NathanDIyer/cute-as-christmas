@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#c62828" />
+    <meta
+      name="description"
+      content="Guide Santa, fire ornaments, and save the forest in this cozy holiday arcade game."
+    />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icon.png" />
+    <title>Cute As Christmas</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="hud">
+        <div class="brand">
+          <span class="brand-title">Cute As Christmas</span>
+          <span class="brand-subtitle">Santa vs. the Falling Pines</span>
+        </div>
+        <div class="scoreboard">
+          <div class="score-label">Score</div>
+          <div id="score" class="score-value">0</div>
+        </div>
+      </header>
+
+      <canvas id="game" width="800" height="600" aria-label="Santa game"></canvas>
+
+      <div class="controls" aria-hidden="false">
+        <div class="joystick" id="joystick" aria-label="Move Santa">
+          <div class="joystick-base"></div>
+          <div class="joystick-stick" id="joystickStick"></div>
+        </div>
+        <button id="fireButton" class="fire-button" aria-label="Fire ornament">
+          Fire
+        </button>
+      </div>
+
+      <div id="overlay" class="overlay" role="dialog" aria-live="polite">
+        <div class="overlay-card">
+          <h1 id="overlayTitle">Ready to Play?</h1>
+          <p id="overlayMessage">
+            Move Santa with the joystick. Tap Fire to launch ornaments. Stop the
+            trees before they land.
+          </p>
+          <button id="startButton" class="start-button">Start</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
