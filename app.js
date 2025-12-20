@@ -16,6 +16,9 @@ const images = {
   santa: new Image(),
   tree: new Image(),
   ornament: new Image(),
+  stocking: new Image(),
+  coal: new Image(),
+  reindeer: new Image(),
 };
 
 const music = new Audio("Jingle Bells Tonight.mp3");
@@ -63,13 +66,31 @@ const SCALE = {
   santa: 0.24,
   tree: 0.22,
   ornament: 0.1,
+  stocking: 0.12,
+  coal: 0.08,
+  reindeer: 0.18,
 };
 
 let lastTime = 0;
 let elapsed = 0;
 let spawnTimer = 0;
 let score = 0;
+let highScore = parseInt(localStorage.getItem("highScore"), 10) || 0;
 let gameState = "loading";
+let level = 1;
+let levelMessageTimer = 0;
+let rapidFireTimer = 0;
+let coalSpawnTimer = 0;
+let lastReindeerLevel = 0;
+
+const reindeer = {
+  active: false,
+  x: 0,
+  y: 0,
+  size: 0,
+  timer: 0,
+  fireTimer: 0,
+};
 
 const santa = {
   x: 0,
@@ -79,6 +100,8 @@ const santa = {
 
 const ornaments = [];
 const trees = [];
+const stockings = [];
+const coals = [];
 
 const joystickState = {
   pointerId: null,
@@ -145,10 +168,18 @@ function resetGame() {
   santa.y = height * 0.78;
   ornaments.length = 0;
   trees.length = 0;
+  stockings.length = 0;
+  coals.length = 0;
   score = 0;
   elapsed = 0;
   spawnTimer = 0;
   fireCooldown = 0;
+  level = 1;
+  levelMessageTimer = 0;
+  rapidFireTimer = 0;
+  coalSpawnTimer = 0;
+  lastReindeerLevel = 0;
+  reindeer.active = false;
   scoreEl.textContent = score;
 }
 
@@ -170,6 +201,78 @@ function spawnTree() {
   });
 }
 
+function spawnStocking() {
+  const width = canvas.width / (window.devicePixelRatio || 1);
+  const unit = Math.min(width, canvas.height / (window.devicePixelRatio || 1));
+  const size = unit * SCALE.stocking;
+  const padding = size * 0.7;
+  stockings.push({
+    x: padding + Math.random() * (width - padding * 2),
+    y: -size,
+    size,
+    scale: SCALE.stocking,
+    speed: unit * 0.08,
+  });
+}
+
+function spawnCoal() {
+  const width = canvas.width / (window.devicePixelRatio || 1);
+  const unit = Math.min(width, canvas.height / (window.devicePixelRatio || 1));
+  const size = unit * SCALE.coal;
+  const padding = size * 0.7;
+  coals.push({
+    x: padding + Math.random() * (width - padding * 2),
+    y: -size,
+    size,
+    scale: SCALE.coal,
+    speed: unit * 0.06,
+  });
+}
+
+function spawnReindeer() {
+  if (reindeer.active) return;
+
+  const unit = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1);
+  const height = canvas.height / (window.devicePixelRatio || 1);
+
+  reindeer.active = true;
+  reindeer.x = -unit * SCALE.reindeer;
+  reindeer.y = height * 0.5;
+  reindeer.size = unit * SCALE.reindeer;
+  reindeer.timer = 4; // 4 seconds of help
+  reindeer.fireTimer = 0;
+}
+
+function updateReindeer(dt) {
+  if (!reindeer.active) return;
+
+  const width = canvas.width / (window.devicePixelRatio || 1);
+  const unit = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1);
+
+  // Move across screen
+  reindeer.x += unit * 0.25 * dt;
+
+  // Auto-fire ornaments
+  reindeer.fireTimer -= dt;
+  if (reindeer.fireTimer <= 0) {
+    const size = unit * SCALE.ornament;
+    ornaments.push({
+      x: reindeer.x,
+      y: reindeer.y + reindeer.size * 0.3,
+      size,
+      scale: SCALE.ornament,
+      speed: unit * 0.9,
+    });
+    reindeer.fireTimer = 0.25; // Fire rate
+  }
+
+  // Deactivate when timer expires or off screen
+  reindeer.timer -= dt;
+  if (reindeer.timer <= 0 || reindeer.x > width + reindeer.size) {
+    reindeer.active = false;
+  }
+}
+
 function fireOrnament() {
   if (gameState !== "playing" || fireCooldown > 0) {
     return;
@@ -184,7 +287,8 @@ function fireOrnament() {
     scale: SCALE.ornament,
     speed: unit * 0.9,
   });
-  fireCooldown = 0.35;
+  // Rapid fire: 3x faster when power-up active
+  fireCooldown = rapidFireTimer > 0 ? 0.12 : 0.35;
 }
 
 function updateSanta(dt) {
@@ -230,6 +334,63 @@ function updateTrees(dt) {
   }
 }
 
+function updateStockings(dt) {
+  const height = canvas.height / (window.devicePixelRatio || 1);
+  stockings.forEach((stocking) => {
+    stocking.y += stocking.speed * dt;
+  });
+
+  // Remove off-screen stockings
+  for (let i = stockings.length - 1; i >= 0; i -= 1) {
+    if (stockings[i].y - stockings[i].size > height) {
+      stockings.splice(i, 1);
+    }
+  }
+}
+
+function updateCoals(dt) {
+  const height = canvas.height / (window.devicePixelRatio || 1);
+  coals.forEach((coal) => {
+    coal.y += coal.speed * dt;
+  });
+
+  // Remove off-screen coals
+  for (let i = coals.length - 1; i >= 0; i -= 1) {
+    if (coals[i].y - coals[i].size > height) {
+      coals.splice(i, 1);
+    }
+  }
+}
+
+function checkSantaCollisions() {
+  const santaRadius = santa.size * 0.35;
+
+  // Check stocking pickups
+  for (let i = stockings.length - 1; i >= 0; i -= 1) {
+    const stocking = stockings[i];
+    const dx = santa.x - stocking.x;
+    const dy = santa.y - stocking.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < santaRadius + stocking.size * 0.4) {
+      stockings.splice(i, 1);
+      rapidFireTimer = 5; // 5 seconds of rapid fire
+    }
+  }
+
+  // Check coal collisions
+  for (let i = coals.length - 1; i >= 0; i -= 1) {
+    const coal = coals[i];
+    const dx = santa.x - coal.x;
+    const dy = santa.y - coal.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < santaRadius + coal.size * 0.4) {
+      coals.splice(i, 1);
+      score = Math.max(0, score - 5);
+      scoreEl.textContent = score;
+    }
+  }
+}
+
 function checkCollisions() {
   for (let i = trees.length - 1; i >= 0; i -= 1) {
     const tree = trees[i];
@@ -245,6 +406,19 @@ function checkCollisions() {
         ornaments.splice(j, 1);
         score += 1;
         scoreEl.textContent = score;
+
+        // Check for level-up (every 10 trees)
+        const newLevel = Math.floor(score / 10) + 1;
+        if (newLevel > level) {
+          level = newLevel;
+          levelMessageTimer = 1.5;
+
+          // Spawn reindeer at milestone levels (3, 6, 9...)
+          if (level >= 3 && level % 3 === 0 && level > lastReindeerLevel) {
+            lastReindeerLevel = level;
+            spawnReindeer();
+          }
+        }
         break;
       }
     }
@@ -267,6 +441,34 @@ function draw() {
       tree.y - treeH * 0.5,
       treeW,
       treeH
+    );
+  });
+
+  // Draw stockings
+  const stockingAspect = images.stocking.naturalHeight / images.stocking.naturalWidth || 1;
+  stockings.forEach((stocking) => {
+    const stockW = stocking.size;
+    const stockH = stocking.size * stockingAspect;
+    ctx.drawImage(
+      images.stocking,
+      stocking.x - stockW * 0.5,
+      stocking.y - stockH * 0.5,
+      stockW,
+      stockH
+    );
+  });
+
+  // Draw coals
+  const coalAspect = images.coal.naturalHeight / images.coal.naturalWidth || 1;
+  coals.forEach((coal) => {
+    const coalW = coal.size;
+    const coalH = coal.size * coalAspect;
+    ctx.drawImage(
+      images.coal,
+      coal.x - coalW * 0.5,
+      coal.y - coalH * 0.5,
+      coalW,
+      coalH
     );
   });
 
@@ -293,6 +495,52 @@ function draw() {
     santaW,
     santaH
   );
+
+  // Draw reindeer helper
+  if (reindeer.active) {
+    const reindeerAspect = images.reindeer.naturalHeight / images.reindeer.naturalWidth || 1;
+    const reindeerW = reindeer.size;
+    const reindeerH = reindeer.size * reindeerAspect;
+    ctx.drawImage(
+      images.reindeer,
+      reindeer.x - reindeerW * 0.5,
+      reindeer.y - reindeerH * 0.5,
+      reindeerW,
+      reindeerH
+    );
+  }
+
+  // Draw level-up message
+  if (levelMessageTimer > 0) {
+    const alpha = Math.min(1, levelMessageTimer / 0.5);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "#ffd700";
+    ctx.strokeStyle = "#8b0000";
+    ctx.lineWidth = 4;
+    ctx.font = `bold ${Math.min(width, height) * 0.12}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const text = `Level ${level}!`;
+    ctx.strokeText(text, width / 2, height * 0.35);
+    ctx.fillText(text, width / 2, height * 0.35);
+    ctx.restore();
+  }
+
+  // Draw rapid fire indicator
+  if (rapidFireTimer > 0) {
+    ctx.save();
+    ctx.fillStyle = "#ff4444";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.font = `bold ${Math.min(width, height) * 0.04}px sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    const indicatorText = `RAPID FIRE ${Math.ceil(rapidFireTimer)}s`;
+    ctx.strokeText(indicatorText, 10, 10);
+    ctx.fillText(indicatorText, 10, 10);
+    ctx.restore();
+  }
 }
 
 function loop(timestamp) {
@@ -305,18 +553,37 @@ function loop(timestamp) {
   if (gameState === "playing") {
     updateDifficulty(delta);
     fireCooldown = Math.max(0, fireCooldown - delta);
+    levelMessageTimer = Math.max(0, levelMessageTimer - delta);
+    rapidFireTimer = Math.max(0, rapidFireTimer - delta);
     spawnTimer -= delta;
+    coalSpawnTimer -= delta;
 
     const spawnInterval = Math.max(0.45, 1.5 - elapsed * 0.03);
     if (spawnTimer <= 0) {
       spawnTree();
+      // 5% chance to spawn a stocking when a tree spawns
+      if (Math.random() < 0.05) {
+        spawnStocking();
+      }
       spawnTimer = spawnInterval;
+    }
+
+    // Coal spawns on separate timer (~3% chance per cycle)
+    if (coalSpawnTimer <= 0) {
+      if (Math.random() < 0.03) {
+        spawnCoal();
+      }
+      coalSpawnTimer = 1.0; // Check every second
     }
 
     updateSanta(delta);
     updateOrnaments(delta);
     updateTrees(delta);
+    updateStockings(delta);
+    updateCoals(delta);
+    updateReindeer(delta);
     checkCollisions();
+    checkSantaCollisions();
   }
 
   draw();
@@ -328,8 +595,16 @@ function endGame() {
     return;
   }
   setGameState("over");
-  overlayTitle.textContent = "Game Over";
-  overlayMessage.textContent = `You cleared ${score} tree${score === 1 ? "" : "s"}. Tap to try again.`;
+
+  const isNewBest = score > highScore;
+  if (isNewBest) {
+    highScore = score;
+    localStorage.setItem("highScore", highScore);
+  }
+
+  overlayTitle.textContent = isNewBest ? "New Best!" : "Game Over";
+  const bestText = highScore > 0 ? ` Best: ${highScore}.` : "";
+  overlayMessage.textContent = `You cleared ${score} tree${score === 1 ? "" : "s"}.${bestText} Tap to try again.`;
   startButton.textContent = "Play Again";
 }
 
@@ -408,6 +683,9 @@ function loadImages() {
     { key: "santa", src: "Santa.png" },
     { key: "tree", src: "tree.png" },
     { key: "ornament", src: "ornament.png" },
+    { key: "stocking", src: "stocking.png" },
+    { key: "coal", src: "coal.png" },
+    { key: "reindeer", src: "reindeer.png" },
   ];
 
   let loaded = 0;
@@ -421,8 +699,9 @@ function loadImages() {
         resetGame();
         startButton.disabled = false;
         overlayTitle.textContent = "Ready to Play?";
+        const bestText = highScore > 0 ? `\n\nBest: ${highScore} trees` : "";
         overlayMessage.textContent =
-          "Move Santa with the joystick. Tap Fire to launch ornaments. Stop the trees before they land.";
+          `Move Santa with the joystick. Tap Fire to launch ornaments. Stop the trees before they land.${bestText}`;
       }
     };
   });
@@ -458,6 +737,12 @@ window.addEventListener("keydown", (event) => handleKeyboard(event, true));
 window.addEventListener("keyup", (event) => handleKeyboard(event, false));
 
 window.addEventListener("resize", resizeCanvas);
+
+// Prevent iOS gesture zoom and long-press callouts.
+["gesturestart", "gesturechange", "gestureend"].forEach((type) => {
+  document.addEventListener(type, (event) => event.preventDefault(), { passive: false });
+});
+window.addEventListener("contextmenu", (event) => event.preventDefault());
 
 loadImages();
 resizeCanvas();

@@ -1,4 +1,4 @@
-const CACHE_NAME = "cute-xmas-v10";
+const CACHE_NAME = "cute-xmas-v11";
 const ASSETS = [
   ".",
   "index.html",
@@ -8,6 +8,9 @@ const ASSETS = [
   "Santa.png",
   "tree.png",
   "ornament.png",
+  "stocking.png",
+  "coal.png",
+  "reindeer.png",
   "icon.png",
   "Jingle Bells Tonight.mp3",
   "Background.png",
