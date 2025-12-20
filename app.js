@@ -257,10 +257,6 @@ function draw() {
 
   ctx.clearRect(0, 0, width, height);
 
-  const groundHeight = height * 0.12;
-  ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
-  ctx.fillRect(0, height - groundHeight, width, groundHeight);
-
   const treeAspect = images.tree.naturalHeight / images.tree.naturalWidth || 1;
   trees.forEach((tree) => {
     const treeW = tree.size;
