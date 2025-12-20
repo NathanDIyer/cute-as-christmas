@@ -158,7 +158,7 @@ function spawnTree() {
     y: -size,
     size,
     scale: SCALE.tree,
-    speed: unit * (0.22 + Math.random() * 0.15),
+    speed: unit * (0.12 + Math.random() * 0.08),
   });
 }
 
