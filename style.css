@@ -17,12 +17,17 @@
 body {
   font-family: "Trebuchet MS", "Verdana", sans-serif;
   min-height: 100vh;
-  background: radial-gradient(circle at top, #fff8ef 0%, #f6e8d7 45%, #ebd7c2 100%);
+  background: radial-gradient(circle at top, #e3f4fc 0%, #b8dff5 45%, #9ed3f0 100%);
   color: #2f2a25;
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body::before {

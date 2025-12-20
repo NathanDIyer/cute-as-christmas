@@ -1,4 +1,4 @@
-const CACHE_NAME = "cute-xmas-v2";
+const CACHE_NAME = "cute-xmas-v3";
 const ASSETS = [
   ".",
   "index.html",
