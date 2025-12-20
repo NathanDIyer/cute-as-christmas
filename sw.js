@@ -1,4 +1,4 @@
-const CACHE_NAME = "cute-xmas-v1";
+const CACHE_NAME = "cute-xmas-v2";
 const ASSETS = [
   ".",
   "index.html",
@@ -9,6 +9,7 @@ const ASSETS = [
   "tree.png",
   "ornament.png",
   "icon.png",
+  "Jingle Bells Tonight.mp3",
 ];
 
 self.addEventListener("install", (event) => {

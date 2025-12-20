@@ -18,10 +18,43 @@ const images = {
   ornament: new Image(),
 };
 
+const music = new Audio("Jingle Bells Tonight.mp3");
+music.loop = true;
+music.volume = 0.4;
+let musicPlaying = false;
+
+function toggleMusic() {
+  if (musicPlaying) {
+    music.pause();
+    musicPlaying = false;
+  } else {
+    music.play().catch(() => {});
+    musicPlaying = true;
+  }
+  updateMusicButton();
+}
+
+function updateMusicButton() {
+  const btn = document.getElementById("musicButton");
+  if (btn) {
+    btn.textContent = musicPlaying ? "🔊" : "🔇";
+    btn.setAttribute("aria-label", musicPlaying ? "Mute music" : "Play music");
+  }
+}
+
+function startMusic() {
+  if (!musicPlaying) {
+    music.play().then(() => {
+      musicPlaying = true;
+      updateMusicButton();
+    }).catch(() => {});
+  }
+}
+
 const SCALE = {
-  santa: 0.1,
-  tree: 0.12,
-  ornament: 0.035,
+  santa: 0.18,
+  tree: 0.22,
+  ornament: 0.07,
 };
 
 let lastTime = 0;
@@ -294,6 +327,7 @@ function startGame() {
     "Move Santa with the joystick. Tap Fire to launch ornaments. Stop the trees before they land.";
   startButton.textContent = "Start";
   setGameState("playing");
+  startMusic();
 }
 
 function handlePointerMove(event) {
@@ -398,6 +432,8 @@ fireButton.addEventListener("pointerdown", (event) => {
 });
 
 startButton.addEventListener("click", startGame);
+
+document.getElementById("musicButton").addEventListener("click", toggleMusic);
 
 overlay.addEventListener("click", () => {
   if (gameState === "ready" || gameState === "over") {
