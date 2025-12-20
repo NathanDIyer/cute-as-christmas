@@ -14,10 +14,15 @@
   padding: 0;
 }
 
+html, body {
+  height: 100%;
+}
+
 body {
   font-family: "Trebuchet MS", "Verdana", sans-serif;
-  min-height: 100vh;
-  background: url("Background.png") center bottom / cover no-repeat fixed;
+  min-height: 100%;
+  min-height: 100dvh;
+  background: url("Background.png") center bottom / cover no-repeat;
   background-color: #2a2a5a;
   color: #2f2a25;
   display: flex;
@@ -35,11 +40,12 @@ body {
 
 .app {
   position: relative;
-  width: min(980px, 96vw);
-  height: min(720px, 96vh);
-  border-radius: 28px;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: none;
   background: transparent;
   animation: rise 600ms ease-out;
 }
@@ -57,13 +63,14 @@ body {
 
 .hud {
   position: absolute;
-  inset: 0 0 auto 0;
+  inset: 16px 16px auto 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 60px 16px 14px 16px;
-  border-radius: 0 0 20px 20px;
-  background: linear-gradient(180deg, #1a1a4a 0%, #2a2a5a 100%);
+  padding: 10px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
   box-shadow: 0 8px 18px var(--shadow);
   z-index: 10;
 }
@@ -78,14 +85,14 @@ body {
   font-family: "Impact", "Arial Black", sans-serif;
   font-size: clamp(18px, 3vw, 26px);
   letter-spacing: 0.5px;
-  color: #ff6b6b;
+  color: var(--crimson);
 }
 
 .brand-subtitle {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: #a0a0c0;
+  color: #635348;
 }
 
 .scoreboard {
@@ -93,18 +100,18 @@ body {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 2px;
-  color: #a0a0c0;
+  color: #635348;
 }
 
 .score-value {
   font-family: "Impact", "Arial Black", sans-serif;
   font-size: clamp(22px, 3vw, 32px);
-  color: #7cfc7c;
+  color: var(--evergreen);
 }
 
 .music-button {
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: var(--ui-glass);
+  border: 2px solid rgba(90, 72, 56, 0.3);
   border-radius: 50%;
   width: 44px;
   height: 44px;
@@ -118,7 +125,7 @@ body {
 
 .music-button:active {
   transform: scale(0.92);
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 #game {
