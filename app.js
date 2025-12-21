@@ -82,6 +82,7 @@ let levelMessageTimer = 0;
 let rapidFireTimer = 0;
 let coalSpawnTimer = 0;
 let lastReindeerLevel = 0;
+let combo = 0;
 
 const reindeer = {
   active: false,
@@ -179,6 +180,7 @@ function resetGame() {
   rapidFireTimer = 0;
   coalSpawnTimer = 0;
   lastReindeerLevel = 0;
+  combo = 0;
   reindeer.active = false;
   scoreEl.textContent = score;
 }
@@ -315,6 +317,7 @@ function updateOrnaments(dt) {
   for (let i = ornaments.length - 1; i >= 0; i -= 1) {
     if (ornaments[i].y + ornaments[i].size < 0) {
       ornaments.splice(i, 1);
+      combo = 0; // Reset combo on miss
     }
   }
 }
@@ -404,7 +407,10 @@ function checkCollisions() {
       if (distance < treeRadius + ornament.size * 0.4) {
         trees.splice(i, 1);
         ornaments.splice(j, 1);
-        score += 1;
+        combo += 1;
+        // Award points based on combo: 1 point normally, 2 at 5x, 3 at 10x
+        const points = combo >= 10 ? 3 : combo >= 5 ? 2 : 1;
+        score += points;
         scoreEl.textContent = score;
 
         // Check for level-up (every 10 trees)
@@ -539,6 +545,23 @@ function draw() {
     const indicatorText = `RAPID FIRE ${Math.ceil(rapidFireTimer)}s`;
     ctx.strokeText(indicatorText, 10, 10);
     ctx.fillText(indicatorText, 10, 10);
+    ctx.restore();
+  }
+
+  // Draw combo indicator
+  if (combo >= 2) {
+    ctx.save();
+    const multiplier = combo >= 10 ? 3 : combo >= 5 ? 2 : 1;
+    ctx.fillStyle = multiplier >= 3 ? "#ffd700" : multiplier >= 2 ? "#ff8800" : "#44ff44";
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 3;
+    ctx.font = `bold ${Math.min(width, height) * 0.05}px sans-serif`;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "bottom";
+    const comboText = `${combo}x COMBO`;
+    const pointsText = multiplier > 1 ? ` (${multiplier}pts)` : "";
+    ctx.strokeText(comboText + pointsText, width - 10, height - 10);
+    ctx.fillText(comboText + pointsText, width - 10, height - 10);
     ctx.restore();
   }
 }
