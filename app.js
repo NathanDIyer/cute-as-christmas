@@ -548,20 +548,20 @@ function draw() {
     ctx.restore();
   }
 
-  // Draw combo indicator
+  // Draw combo indicator (top-right, below HUD)
   if (combo >= 2) {
     ctx.save();
     const multiplier = combo >= 10 ? 3 : combo >= 5 ? 2 : 1;
     ctx.fillStyle = multiplier >= 3 ? "#ffd700" : multiplier >= 2 ? "#ff8800" : "#44ff44";
     ctx.strokeStyle = "#000000";
     ctx.lineWidth = 3;
-    ctx.font = `bold ${Math.min(width, height) * 0.05}px sans-serif`;
+    ctx.font = `bold ${Math.min(width, height) * 0.06}px sans-serif`;
     ctx.textAlign = "right";
-    ctx.textBaseline = "bottom";
+    ctx.textBaseline = "top";
     const comboText = `${combo}x COMBO`;
     const pointsText = multiplier > 1 ? ` (${multiplier}pts)` : "";
-    ctx.strokeText(comboText + pointsText, width - 10, height - 10);
-    ctx.fillText(comboText + pointsText, width - 10, height - 10);
+    ctx.strokeText(comboText + pointsText, width - 10, 80);
+    ctx.fillText(comboText + pointsText, width - 10, 80);
     ctx.restore();
   }
 }
