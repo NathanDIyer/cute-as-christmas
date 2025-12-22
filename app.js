@@ -1,6 +1,8 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+const VERSION = "v1.0";
+
 const scoreEl = document.getElementById("score");
 const overlay = document.getElementById("overlay");
 const overlayTitle = document.getElementById("overlayTitle");
@@ -564,6 +566,18 @@ function draw() {
     ctx.fillText(comboText + pointsText, width - 10, 80);
     ctx.restore();
   }
+
+  // Draw version (top-left, below HUD, always visible for testing)
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.lineWidth = 2;
+  ctx.font = `bold ${Math.min(width, height) * 0.025}px sans-serif`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.strokeText(VERSION, 10, 70);
+  ctx.fillText(VERSION, 10, 70);
+  ctx.restore();
 }
 
 function loop(timestamp) {
@@ -721,10 +735,12 @@ function loadImages() {
         setGameState("ready");
         resetGame();
         startButton.disabled = false;
-        overlayTitle.textContent = "Ready to Play?";
+        overlayTitle.textContent = "How to Play";
         const bestText = highScore > 0 ? `\n\nBest: ${highScore} trees` : "";
         overlayMessage.textContent =
-          `Move Santa with the joystick. Tap Fire to launch ornaments. Stop the trees before they land.${bestText}`;
+          `Move Santa with the joystick (or WASD/arrows). Tap Fire (or Space) to launch ornaments at falling trees.\n\n` +
+          `Catch stockings for rapid fire! Avoid coal (-5 pts).\n\n` +
+          `Hit trees in a row to build combos: 5x = 2pts, 10x = 3pts per tree. Miss and combo resets!${bestText}`;
       }
     };
   });
