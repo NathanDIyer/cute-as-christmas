@@ -255,6 +255,8 @@ body {
   line-height: 1.5;
   margin-bottom: 18px;
   color: #4a3a2c;
+  white-space: pre-line;
+  text-align: left;
 }
 
 .start-button {

@@ -721,10 +721,12 @@ function loadImages() {
         setGameState("ready");
         resetGame();
         startButton.disabled = false;
-        overlayTitle.textContent = "Ready to Play?";
+        overlayTitle.textContent = "How to Play";
         const bestText = highScore > 0 ? `\n\nBest: ${highScore} trees` : "";
         overlayMessage.textContent =
-          `Move Santa with the joystick. Tap Fire to launch ornaments. Stop the trees before they land.${bestText}`;
+          `Move Santa with the joystick (or WASD/arrows). Tap Fire (or Space) to launch ornaments at falling trees.\n\n` +
+          `Catch stockings for rapid fire! Avoid coal (-5 pts).\n\n` +
+          `Hit trees in a row to build combos: 5x = 2pts, 10x = 3pts per tree. Miss and combo resets!${bestText}`;
       }
     };
   });
