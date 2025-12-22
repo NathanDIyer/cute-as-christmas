@@ -6,6 +6,15 @@ A cozy holiday arcade game where you guide Santa, fire ornaments, and save the f
 
 ---
 
+## Versioning Policy
+
+- **Major updates** (new features, big changes): bump full version (v1.0 → v2.0)
+- **Minor updates** (bug fixes, small tweaks): bump by .1 (v1.0 → v1.1)
+
+Version is displayed in-game (top-left) for tracking.
+
+---
+
 ## How to Play
 
 ### Controls
