@@ -11,6 +11,8 @@ const startButton = document.getElementById("startButton");
 const fireButton = document.getElementById("fireButton");
 const joystick = document.getElementById("joystick");
 const joystickStick = document.getElementById("joystickStick");
+const fireJoystick = document.getElementById("fireJoystick");
+const fireJoystickStick = document.getElementById("fireJoystickStick");
 const characterSelect = document.getElementById("characterSelect");
 const characterGrid = document.getElementById("characterGrid");
 
@@ -124,7 +126,9 @@ let elapsed = 0;
 let spawnTimer = 0;
 let score = 0;
 let highScore = parseInt(localStorage.getItem("highScore"), 10) || 0;
-let totalPoints = parseInt(localStorage.getItem("totalPoints"), 10) || 0;
+// Testing: Force 15000 points to unlock all characters
+let totalPoints = 15000;
+localStorage.setItem("totalPoints", totalPoints);
 let unlockedCharacters = JSON.parse(localStorage.getItem("unlockedCharacters")) || { santa: true };
 let selectedCharacter = localStorage.getItem("selectedCharacter") || "santa";
 let gameState = "loading";
@@ -160,6 +164,14 @@ const snowflakes = [];
 const cocoas = [];
 
 const joystickState = {
+  pointerId: null,
+  active: false,
+  center: { x: 0, y: 0 },
+  radius: 0,
+  vector: { x: 0, y: 0 },
+};
+
+const fireJoystickState = {
   pointerId: null,
   active: false,
   center: { x: 0, y: 0 },
@@ -206,6 +218,16 @@ function updateJoystickBounds() {
     y: rect.top + rect.height / 2,
   };
   joystickState.radius = rect.width / 2 - 6;
+  
+  // Update fire joystick bounds if visible
+  if (fireJoystick.style.display !== "none") {
+    const fireRect = fireJoystick.getBoundingClientRect();
+    fireJoystickState.center = {
+      x: fireRect.left + fireRect.width / 2,
+      y: fireRect.top + fireRect.height / 2,
+    };
+    fireJoystickState.radius = fireRect.width / 2 - 6;
+  }
 }
 
 function setGameState(state) {
@@ -428,20 +450,24 @@ function updateSanta(dt) {
   santa.x = Math.min(Math.max(santa.x, santa.size * 0.5), width - santa.size * 0.5);
   santa.y = Math.min(Math.max(santa.y, santa.size * 0.5), height - santa.size * 0.5);
   
-  // Kasie auto-fires with joystick direction
-  if (selectedCharacter === "kasie" && (inputX !== 0 || inputY !== 0) && fireCooldown <= 0) {
-    const unit = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1);
-    const size = unit * SCALE.ornament;
-    const speed = unit * 0.9;
-    const magnitude = Math.hypot(inputX, inputY);
-    if (magnitude > 0) {
+  // Kasie fires with fire joystick
+  if (selectedCharacter === "kasie" && fireJoystickState.active && fireCooldown <= 0) {
+    const fireInputX = fireJoystickState.vector.x;
+    const fireInputY = fireJoystickState.vector.y;
+    const magnitude = Math.hypot(fireInputX, fireInputY);
+    
+    if (magnitude > 0.3) { // Dead zone
+      const unit = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1);
+      const size = unit * SCALE.ornament;
+      const speed = unit * 0.9;
+      
       ornaments.push({
         x: santa.x,
         y: santa.y,
         size,
         scale: SCALE.ornament,
-        speedX: (inputX / magnitude) * speed,
-        speedY: (inputY / magnitude) * speed,
+        speedX: (fireInputX / magnitude) * speed,
+        speedY: (fireInputY / magnitude) * speed,
         speed: speed,
         fromSanta: true,
       });
@@ -1082,6 +1108,17 @@ function renderCharacters() {
   });
 }
 
+function updateControlsForCharacter() {
+  if (selectedCharacter === "kasie") {
+    fireButton.style.display = "none";
+    fireJoystick.style.display = "block";
+  } else {
+    fireButton.style.display = "block";
+    fireJoystick.style.display = "none";
+  }
+  updateJoystickBounds();
+}
+
 function startGame() {
   if (characterSelect.style.display === "block") {
     characterSelect.style.display = "none";
@@ -1090,41 +1127,65 @@ function startGame() {
   
   resetGame();
   updateScale(); // Update scale for selected character
+  updateControlsForCharacter(); // Update controls for selected character
   overlayTitle.textContent = "Ready to Play?";
   overlayMessage.textContent =
-    `Move ${CHARACTERS[selectedCharacter].name} with the joystick. ${selectedCharacter === 'kasie' ? 'Aim joystick to fire!' : 'Tap Fire to launch ornaments.'} Stop the trees before they land.`;
+    `Move ${CHARACTERS[selectedCharacter].name} with the left joystick. ${selectedCharacter === 'kasie' ? 'Use right joystick to aim and fire!' : 'Tap Fire to launch ornaments.'} Stop the trees before they land.`;
   startButton.textContent = "Start";
   setGameState("playing");
   startMusic();
 }
 
 function handlePointerMove(event) {
-  if (!joystickState.active || joystickState.pointerId !== event.pointerId) {
-    return;
+  // Handle movement joystick
+  if (joystickState.active && joystickState.pointerId === event.pointerId) {
+    const dx = event.clientX - joystickState.center.x;
+    const dy = event.clientY - joystickState.center.y;
+    const distance = Math.hypot(dx, dy);
+    const max = joystickState.radius;
+    const ratio = distance > max ? max / distance : 1;
+    const clampedX = dx * ratio;
+    const clampedY = dy * ratio;
+
+    joystickState.vector.x = clampedX / max;
+    joystickState.vector.y = clampedY / max;
+    joystickStick.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
   }
+  
+  // Handle fire joystick
+  if (fireJoystickState.active && fireJoystickState.pointerId === event.pointerId) {
+    const dx = event.clientX - fireJoystickState.center.x;
+    const dy = event.clientY - fireJoystickState.center.y;
+    const distance = Math.hypot(dx, dy);
+    const max = fireJoystickState.radius;
+    const ratio = distance > max ? max / distance : 1;
+    const clampedX = dx * ratio;
+    const clampedY = dy * ratio;
 
-  const dx = event.clientX - joystickState.center.x;
-  const dy = event.clientY - joystickState.center.y;
-  const distance = Math.hypot(dx, dy);
-  const max = joystickState.radius;
-  const ratio = distance > max ? max / distance : 1;
-  const clampedX = dx * ratio;
-  const clampedY = dy * ratio;
-
-  joystickState.vector.x = clampedX / max;
-  joystickState.vector.y = clampedY / max;
-  joystickStick.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
+    fireJoystickState.vector.x = clampedX / max;
+    fireJoystickState.vector.y = clampedY / max;
+    fireJoystickStick.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
+  }
 }
 
 function resetJoystick(event) {
-  if (event && joystickState.pointerId !== null && event.pointerId !== joystickState.pointerId) {
-    return;
+  // Reset movement joystick
+  if (!event || event.pointerId === joystickState.pointerId) {
+    joystickState.active = false;
+    joystickState.pointerId = null;
+    joystickState.vector.x = 0;
+    joystickState.vector.y = 0;
+    joystickStick.style.transform = "translate(-50%, -50%)";
   }
-  joystickState.active = false;
-  joystickState.pointerId = null;
-  joystickState.vector.x = 0;
-  joystickState.vector.y = 0;
-  joystickStick.style.transform = "translate(-50%, -50%)";
+  
+  // Reset fire joystick
+  if (!event || event.pointerId === fireJoystickState.pointerId) {
+    fireJoystickState.active = false;
+    fireJoystickState.pointerId = null;
+    fireJoystickState.vector.x = 0;
+    fireJoystickState.vector.y = 0;
+    fireJoystickStick.style.transform = "translate(-50%, -50%)";
+  }
 }
 
 function handleKeyboard(event, isDown) {
@@ -1202,6 +1263,13 @@ joystick.addEventListener("pointerdown", (event) => {
   joystickState.active = true;
   joystickState.pointerId = event.pointerId;
   joystick.setPointerCapture(event.pointerId);
+  handlePointerMove(event);
+});
+
+fireJoystick.addEventListener("pointerdown", (event) => {
+  fireJoystickState.active = true;
+  fireJoystickState.pointerId = event.pointerId;
+  fireJoystick.setPointerCapture(event.pointerId);
   handlePointerMove(event);
 });
 

@@ -30,13 +30,17 @@
       <canvas id="game" width="800" height="600" aria-label="Santa game"></canvas>
 
       <div class="controls" aria-hidden="false">
-        <div class="joystick" id="joystick" aria-label="Move Santa">
+        <div class="joystick" id="joystick" aria-label="Move character">
           <div class="joystick-base"></div>
           <div class="joystick-stick" id="joystickStick"></div>
         </div>
         <button id="fireButton" class="fire-button" aria-label="Fire ornament">
           Fire
         </button>
+        <div class="joystick fire-joystick" id="fireJoystick" aria-label="Aim and fire" style="display: none;">
+          <div class="joystick-base"></div>
+          <div class="joystick-stick" id="fireJoystickStick"></div>
+        </div>
       </div>
 
       <div id="overlay" class="overlay" role="dialog" aria-live="polite">
