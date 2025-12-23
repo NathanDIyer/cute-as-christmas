@@ -21,6 +21,9 @@ const images = {
   stocking: new Image(),
   coal: new Image(),
   reindeer: new Image(),
+  background1: new Image(),
+  background2: new Image(),
+  background3: new Image(),
 };
 
 const music = new Audio("Jingle Bells Tonight.mp3");
@@ -69,7 +72,7 @@ const SCALE = {
   tree: 0.22,
   ornament: 0.1,
   stocking: 0.12,
-  coal: 0.14,
+  coal: 0.18,
   reindeer: 0.18,
 };
 
@@ -229,7 +232,7 @@ function spawnCoal() {
     y: -size,
     size,
     scale: SCALE.coal,
-    speed: unit * 0.12,
+    speed: unit * 0.18, // Faster coal
   });
 }
 
@@ -266,6 +269,7 @@ function updateReindeer(dt) {
       size,
       scale: SCALE.ornament,
       speed: unit * 0.9,
+      fromSanta: false, // Mark as reindeer-fired
     });
     reindeer.fireTimer = 0.25; // Fire rate
   }
@@ -290,6 +294,7 @@ function fireOrnament() {
     size,
     scale: SCALE.ornament,
     speed: unit * 0.9,
+    fromSanta: true, // Mark as Santa-fired
   });
   // Rapid fire: 3x faster when power-up active
   fireCooldown = rapidFireTimer > 0 ? 0.12 : 0.35;
@@ -318,8 +323,11 @@ function updateOrnaments(dt) {
 
   for (let i = ornaments.length - 1; i >= 0; i -= 1) {
     if (ornaments[i].y + ornaments[i].size < 0) {
+      const wasSantaFired = ornaments[i].fromSanta !== false; // Check if it was fired by Santa
       ornaments.splice(i, 1);
-      combo = 0; // Reset combo on miss
+      if (wasSantaFired) {
+        combo = 0; // Only reset combo on Santa's missed shots
+      }
     }
   }
 }
@@ -394,6 +402,21 @@ function checkSantaCollisions() {
       scoreEl.textContent = score;
     }
   }
+
+  // Check tree collisions with Santa's body
+  for (let i = trees.length - 1; i >= 0; i -= 1) {
+    const tree = trees[i];
+    const dx = santa.x - tree.x;
+    const dy = santa.y - tree.y;
+    const distance = Math.hypot(dx, dy);
+    const treeRadius = tree.size * 0.35;
+    if (distance < santaRadius + treeRadius) {
+      trees.splice(i, 1);
+      score = Math.max(0, score - 1); // Costs 1 point but saves from defeat
+      scoreEl.textContent = score;
+      combo = 0; // Reset combo when Santa hits a tree
+    }
+  }
 }
 
 function checkCollisions() {
@@ -438,6 +461,34 @@ function draw() {
   const height = canvas.height / (window.devicePixelRatio || 1);
 
   ctx.clearRect(0, 0, width, height);
+
+  // Draw background based on level
+  const bgLevel = Math.floor((level - 1) / 5) % 3;
+  let bgImage = images.background1;
+  if (bgLevel === 1) bgImage = images.background2;
+  else if (bgLevel === 2) bgImage = images.background3;
+  
+  if (bgImage.complete) {
+    // Scale background to fill canvas
+    const bgAspect = bgImage.naturalWidth / bgImage.naturalHeight;
+    const canvasAspect = width / height;
+    let drawWidth = width;
+    let drawHeight = height;
+    let drawX = 0;
+    let drawY = 0;
+    
+    if (bgAspect > canvasAspect) {
+      // Background is wider, fit height
+      drawWidth = height * bgAspect;
+      drawX = (width - drawWidth) / 2;
+    } else {
+      // Background is taller, fit width
+      drawHeight = width / bgAspect;
+      drawY = (height - drawHeight) / 2;
+    }
+    
+    ctx.drawImage(bgImage, drawX, drawY, drawWidth, drawHeight);
+  }
 
   const treeAspect = images.tree.naturalHeight / images.tree.naturalWidth || 1;
   trees.forEach((tree) => {
@@ -560,7 +611,21 @@ function draw() {
     ctx.font = `bold ${Math.min(width, height) * 0.06}px sans-serif`;
     ctx.textAlign = "right";
     ctx.textBaseline = "top";
-    const comboText = `${combo}x COMBO`;
+    // Christmas-themed combo messages
+    let comboText = "";
+    if (combo >= 25) {
+      comboText = "SANTA'S MIRACLE!";
+    } else if (combo >= 20) {
+      comboText = "HO HO HO!";
+    } else if (combo >= 15) {
+      comboText = "JINGLE BELLS!";
+    } else if (combo >= 10) {
+      comboText = "MERRY CHRISTMAS!";
+    } else if (combo >= 5) {
+      comboText = "NICE LIST!";
+    } else {
+      comboText = `${combo}x COMBO`;
+    }
     const pointsText = multiplier > 1 ? ` (${multiplier}pts)` : "";
     ctx.strokeText(comboText + pointsText, width - 10, 80);
     ctx.fillText(comboText + pointsText, width - 10, 80);
@@ -723,6 +788,9 @@ function loadImages() {
     { key: "stocking", src: "stocking.png" },
     { key: "coal", src: "coal.png" },
     { key: "reindeer", src: "reindeer.png" },
+    { key: "background1", src: "Background.png" },
+    { key: "background2", src: "background_2.png" },
+    { key: "background3", src: "background_3.png" },
   ];
 
   let loaded = 0;
