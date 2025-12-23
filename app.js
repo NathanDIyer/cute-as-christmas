@@ -21,6 +21,8 @@ const images = {
   stocking: new Image(),
   coal: new Image(),
   reindeer: new Image(),
+  snowflake: new Image(),
+  cocoa: new Image(),
   background1: new Image(),
   background2: new Image(),
   background3: new Image(),
@@ -74,6 +76,8 @@ const SCALE = {
   stocking: 0.12,
   coal: 0.18,
   reindeer: 0.18,
+  snowflake: 0.14,
+  cocoa: 0.12,
 };
 
 let lastTime = 0;
@@ -85,6 +89,8 @@ let gameState = "loading";
 let level = 1;
 let levelMessageTimer = 0;
 let rapidFireTimer = 0;
+let slowMoTimer = 0;
+let speedBoostTimer = 0;
 let coalSpawnTimer = 0;
 let lastReindeerLevel = 0;
 let combo = 0;
@@ -108,6 +114,8 @@ const ornaments = [];
 const trees = [];
 const stockings = [];
 const coals = [];
+const snowflakes = [];
+const cocoas = [];
 
 const joystickState = {
   pointerId: null,
@@ -176,6 +184,8 @@ function resetGame() {
   trees.length = 0;
   stockings.length = 0;
   coals.length = 0;
+  snowflakes.length = 0;
+  cocoas.length = 0;
   score = 0;
   elapsed = 0;
   spawnTimer = 0;
@@ -183,6 +193,8 @@ function resetGame() {
   level = 1;
   levelMessageTimer = 0;
   rapidFireTimer = 0;
+  slowMoTimer = 0;
+  speedBoostTimer = 0;
   coalSpawnTimer = 0;
   lastReindeerLevel = 0;
   combo = 0;
@@ -233,6 +245,34 @@ function spawnCoal() {
     size,
     scale: SCALE.coal,
     speed: unit * 0.18, // Faster coal
+  });
+}
+
+function spawnSnowflake() {
+  const width = canvas.width / (window.devicePixelRatio || 1);
+  const unit = Math.min(width, canvas.height / (window.devicePixelRatio || 1));
+  const size = unit * SCALE.snowflake;
+  const padding = size * 0.7;
+  snowflakes.push({
+    x: padding + Math.random() * (width - padding * 2),
+    y: -size,
+    size,
+    scale: SCALE.snowflake,
+    speed: unit * 0.08,
+  });
+}
+
+function spawnCocoa() {
+  const width = canvas.width / (window.devicePixelRatio || 1);
+  const unit = Math.min(width, canvas.height / (window.devicePixelRatio || 1));
+  const size = unit * SCALE.cocoa;
+  const padding = size * 0.7;
+  cocoas.push({
+    x: padding + Math.random() * (width - padding * 2),
+    y: -size,
+    size,
+    scale: SCALE.cocoa,
+    speed: unit * 0.08,
   });
 }
 
@@ -304,7 +344,8 @@ function updateSanta(dt) {
   const width = canvas.width / (window.devicePixelRatio || 1);
   const height = canvas.height / (window.devicePixelRatio || 1);
   const unit = Math.min(width, height);
-  const moveSpeed = unit * 0.6;
+  // Speed boost: 1.5x faster when cocoa is active
+  const moveSpeed = unit * 0.6 * (speedBoostTimer > 0 ? 1.5 : 1);
 
   const inputX = joystickState.vector.x + (keyboardState.right ? 1 : 0) - (keyboardState.left ? 1 : 0);
   const inputY = joystickState.vector.y + (keyboardState.down ? 1 : 0) - (keyboardState.up ? 1 : 0);
@@ -335,8 +376,10 @@ function updateOrnaments(dt) {
 function updateTrees(dt) {
   const height = canvas.height / (window.devicePixelRatio || 1);
   const difficulty = 1 + elapsed / 25;
+  // Slow motion: trees move at 40% speed when snowflake is active
+  const slowFactor = slowMoTimer > 0 ? 0.4 : 1;
   trees.forEach((tree) => {
-    tree.y += tree.speed * difficulty * dt;
+    tree.y += tree.speed * difficulty * slowFactor * dt;
   });
 
   for (let i = trees.length - 1; i >= 0; i -= 1) {
@@ -375,6 +418,34 @@ function updateCoals(dt) {
   }
 }
 
+function updateSnowflakes(dt) {
+  const height = canvas.height / (window.devicePixelRatio || 1);
+  snowflakes.forEach((snowflake) => {
+    snowflake.y += snowflake.speed * dt;
+  });
+
+  // Remove off-screen snowflakes
+  for (let i = snowflakes.length - 1; i >= 0; i -= 1) {
+    if (snowflakes[i].y - snowflakes[i].size > height) {
+      snowflakes.splice(i, 1);
+    }
+  }
+}
+
+function updateCocoas(dt) {
+  const height = canvas.height / (window.devicePixelRatio || 1);
+  cocoas.forEach((cocoa) => {
+    cocoa.y += cocoa.speed * dt;
+  });
+
+  // Remove off-screen cocoas
+  for (let i = cocoas.length - 1; i >= 0; i -= 1) {
+    if (cocoas[i].y - cocoas[i].size > height) {
+      cocoas.splice(i, 1);
+    }
+  }
+}
+
 function checkSantaCollisions() {
   const santaRadius = santa.size * 0.35;
 
@@ -387,6 +458,30 @@ function checkSantaCollisions() {
     if (distance < santaRadius + stocking.size * 0.4) {
       stockings.splice(i, 1);
       rapidFireTimer = 5; // 5 seconds of rapid fire
+    }
+  }
+
+  // Check snowflake pickups
+  for (let i = snowflakes.length - 1; i >= 0; i -= 1) {
+    const snowflake = snowflakes[i];
+    const dx = santa.x - snowflake.x;
+    const dy = santa.y - snowflake.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < santaRadius + snowflake.size * 0.4) {
+      snowflakes.splice(i, 1);
+      slowMoTimer = 5; // 5 seconds of slow motion
+    }
+  }
+
+  // Check cocoa pickups
+  for (let i = cocoas.length - 1; i >= 0; i -= 1) {
+    const cocoa = cocoas[i];
+    const dx = santa.x - cocoa.x;
+    const dy = santa.y - cocoa.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < santaRadius + cocoa.size * 0.4) {
+      cocoas.splice(i, 1);
+      speedBoostTimer = 5; // 5 seconds of speed boost
     }
   }
 
@@ -531,6 +626,34 @@ function draw() {
     );
   });
 
+  // Draw snowflakes
+  const snowflakeAspect = images.snowflake.naturalHeight / images.snowflake.naturalWidth || 1;
+  snowflakes.forEach((snowflake) => {
+    const snowW = snowflake.size;
+    const snowH = snowflake.size * snowflakeAspect;
+    ctx.drawImage(
+      images.snowflake,
+      snowflake.x - snowW * 0.5,
+      snowflake.y - snowH * 0.5,
+      snowW,
+      snowH
+    );
+  });
+
+  // Draw cocoas
+  const cocoaAspect = images.cocoa.naturalHeight / images.cocoa.naturalWidth || 1;
+  cocoas.forEach((cocoa) => {
+    const cocoaW = cocoa.size;
+    const cocoaH = cocoa.size * cocoaAspect;
+    ctx.drawImage(
+      images.cocoa,
+      cocoa.x - cocoaW * 0.5,
+      cocoa.y - cocoaH * 0.5,
+      cocoaW,
+      cocoaH
+    );
+  });
+
   const ornamentAspect = images.ornament.naturalHeight / images.ornament.naturalWidth || 1;
   ornaments.forEach((ornament) => {
     const ornW = ornament.size;
@@ -586,7 +709,8 @@ function draw() {
     ctx.restore();
   }
 
-  // Draw rapid fire indicator
+  // Draw powerup indicators
+  let powerupY = 10;
   if (rapidFireTimer > 0) {
     ctx.save();
     ctx.fillStyle = "#ff4444";
@@ -596,8 +720,38 @@ function draw() {
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     const indicatorText = `RAPID FIRE ${Math.ceil(rapidFireTimer)}s`;
-    ctx.strokeText(indicatorText, 10, 10);
-    ctx.fillText(indicatorText, 10, 10);
+    ctx.strokeText(indicatorText, 10, powerupY);
+    ctx.fillText(indicatorText, 10, powerupY);
+    ctx.restore();
+    powerupY += 30;
+  }
+  
+  if (slowMoTimer > 0) {
+    ctx.save();
+    ctx.fillStyle = "#44aaff";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.font = `bold ${Math.min(width, height) * 0.04}px sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    const indicatorText = `SLOW MOTION ${Math.ceil(slowMoTimer)}s`;
+    ctx.strokeText(indicatorText, 10, powerupY);
+    ctx.fillText(indicatorText, 10, powerupY);
+    ctx.restore();
+    powerupY += 30;
+  }
+  
+  if (speedBoostTimer > 0) {
+    ctx.save();
+    ctx.fillStyle = "#8b4513";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.font = `bold ${Math.min(width, height) * 0.04}px sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    const indicatorText = `SPEED BOOST ${Math.ceil(speedBoostTimer)}s`;
+    ctx.strokeText(indicatorText, 10, powerupY);
+    ctx.fillText(indicatorText, 10, powerupY);
     ctx.restore();
   }
 
@@ -657,15 +811,22 @@ function loop(timestamp) {
     fireCooldown = Math.max(0, fireCooldown - delta);
     levelMessageTimer = Math.max(0, levelMessageTimer - delta);
     rapidFireTimer = Math.max(0, rapidFireTimer - delta);
+    slowMoTimer = Math.max(0, slowMoTimer - delta);
+    speedBoostTimer = Math.max(0, speedBoostTimer - delta);
     spawnTimer -= delta;
     coalSpawnTimer -= delta;
 
     const spawnInterval = Math.max(0.45, 1.5 - elapsed * 0.03);
     if (spawnTimer <= 0) {
       spawnTree();
-      // 5% chance to spawn a stocking when a tree spawns
-      if (Math.random() < 0.05) {
+      // Balanced powerup spawning: total 5% chance, split among three powerups
+      const powerupRoll = Math.random();
+      if (powerupRoll < 0.017) {
         spawnStocking();
+      } else if (powerupRoll < 0.033) {
+        spawnSnowflake();
+      } else if (powerupRoll < 0.05) {
+        spawnCocoa();
       }
       spawnTimer = spawnInterval;
     }
@@ -683,6 +844,8 @@ function loop(timestamp) {
     updateTrees(delta);
     updateStockings(delta);
     updateCoals(delta);
+    updateSnowflakes(delta);
+    updateCocoas(delta);
     updateReindeer(delta);
     checkCollisions();
     checkSantaCollisions();
@@ -788,6 +951,8 @@ function loadImages() {
     { key: "stocking", src: "stocking.png" },
     { key: "coal", src: "coal.png" },
     { key: "reindeer", src: "reindeer.png" },
+    { key: "snowflake", src: "snowflake.png" },
+    { key: "cocoa", src: "coco.png" },
     { key: "background1", src: "Background.png" },
     { key: "background2", src: "background_2.png" },
     { key: "background3", src: "background_3.png" },
