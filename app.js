@@ -1012,15 +1012,15 @@ function renderCharacters() {
     const card = document.createElement("div");
     card.className = "character-card";
     
-    const isUnlocked = unlockedCharacters[key] || false;
+    const isUnlocked = unlockedCharacters[key] || char.cost === 0;
     const canAfford = totalPoints >= char.cost;
     const isSelected = key === selectedCharacter;
     
     if (!isUnlocked && char.cost > 0) {
       card.classList.add("locked");
-      if (canAfford) {
-        card.classList.add("can-afford");
-      }
+    }
+    if (!isUnlocked && canAfford && char.cost > 0) {
+      card.classList.add("can-afford");
     }
     if (isSelected) {
       card.classList.add("selected");
