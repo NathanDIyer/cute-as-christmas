@@ -1012,11 +1012,15 @@ function renderCharacters() {
     const card = document.createElement("div");
     card.className = "character-card";
     
-    const isUnlocked = unlockedCharacters[key] || totalPoints >= char.cost;
+    const isUnlocked = unlockedCharacters[key] || false;
+    const canAfford = totalPoints >= char.cost;
     const isSelected = key === selectedCharacter;
     
     if (!isUnlocked && char.cost > 0) {
       card.classList.add("locked");
+      if (canAfford) {
+        card.classList.add("can-afford");
+      }
     }
     if (isSelected) {
       card.classList.add("selected");
@@ -1036,8 +1040,10 @@ function renderCharacters() {
       cost.textContent = "FREE";
     } else if (isUnlocked) {
       cost.textContent = "UNLOCKED";
+    } else if (canAfford) {
+      cost.textContent = `UNLOCK: ${char.cost} points`;
     } else {
-      cost.textContent = `${char.cost} points`;
+      cost.textContent = `NEED: ${char.cost} points`;
     }
     
     const special = document.createElement("div");
@@ -1050,14 +1056,22 @@ function renderCharacters() {
     card.appendChild(special);
     
     card.addEventListener("click", () => {
-      if (isUnlocked || totalPoints >= char.cost) {
-        if (!isUnlocked && char.cost > 0) {
-          // Purchase character
-          totalPoints -= char.cost;
-          unlockedCharacters[key] = true;
-          localStorage.setItem("totalPoints", totalPoints);
-          localStorage.setItem("unlockedCharacters", JSON.stringify(unlockedCharacters));
-        }
+      if (isUnlocked) {
+        // Character is already unlocked, just select it
+        selectedCharacter = key;
+        localStorage.setItem("selectedCharacter", selectedCharacter);
+        renderCharacters();
+      } else if (canAfford && char.cost > 0) {
+        // Purchase character
+        totalPoints -= char.cost;
+        unlockedCharacters[key] = true;
+        localStorage.setItem("totalPoints", totalPoints);
+        localStorage.setItem("unlockedCharacters", JSON.stringify(unlockedCharacters));
+        selectedCharacter = key;
+        localStorage.setItem("selectedCharacter", selectedCharacter);
+        renderCharacters();
+      } else if (char.cost === 0) {
+        // Free character (Santa)
         selectedCharacter = key;
         localStorage.setItem("selectedCharacter", selectedCharacter);
         renderCharacters();
@@ -1069,7 +1083,7 @@ function renderCharacters() {
 }
 
 function startGame() {
-  if (characterSelect.style.display !== "none") {
+  if (characterSelect.style.display === "block") {
     characterSelect.style.display = "none";
     overlayMessage.style.display = "block";
   }
@@ -1201,10 +1215,10 @@ fireButton.addEventListener("pointerdown", (event) => {
 });
 
 startButton.addEventListener("click", () => {
-  if (gameState === "ready" || gameState === "over") {
-    showCharacterSelect();
-  } else if (characterSelect.style.display !== "none") {
+  if (characterSelect.style.display === "block") {
     startGame();
+  } else if (gameState === "ready" || gameState === "over") {
+    showCharacterSelect();
   }
 });
 
@@ -1213,10 +1227,11 @@ document.getElementById("musicButton").addEventListener("click", toggleMusic);
 overlay.addEventListener("click", (event) => {
   // Only handle clicks outside the overlay card
   if (event.target === overlay) {
-    if (gameState === "ready" || gameState === "over") {
-      if (characterSelect.style.display === "none") {
-        showCharacterSelect();
-      }
+    if (characterSelect.style.display === "block") {
+      // Character selection is open, do nothing
+      return;
+    } else if (gameState === "ready" || gameState === "over") {
+      showCharacterSelect();
     }
   }
 });
@@ -1236,8 +1251,11 @@ loadImages();
 resizeCanvas();
 requestAnimationFrame(loop);
 
-if ("serviceWorker" in navigator) {
+// Service workers don't work with file:// protocol, only register if using http(s)
+if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js");
+    navigator.serviceWorker.register("sw.js").catch((err) => {
+      console.log("Service worker registration failed:", err);
+    });
   });
 }
