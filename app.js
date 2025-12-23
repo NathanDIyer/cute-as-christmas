@@ -11,11 +11,16 @@ const startButton = document.getElementById("startButton");
 const fireButton = document.getElementById("fireButton");
 const joystick = document.getElementById("joystick");
 const joystickStick = document.getElementById("joystickStick");
+const characterSelect = document.getElementById("characterSelect");
+const characterGrid = document.getElementById("characterGrid");
 
 startButton.disabled = true;
 
 const images = {
   santa: new Image(),
+  msClaus: new Image(),
+  frosty: new Image(),
+  kasie: new Image(),
   tree: new Image(),
   ornament: new Image(),
   stocking: new Image(),
@@ -71,6 +76,9 @@ document.addEventListener("visibilitychange", () => {
 
 const SCALE = {
   santa: 0.24,
+  msClaus: 0.24,
+  frosty: 0.26,
+  kasie: 0.22,
   tree: 0.22,
   ornament: 0.1,
   stocking: 0.12,
@@ -80,11 +88,45 @@ const SCALE = {
   cocoa: 0.12,
 };
 
+const CHARACTERS = {
+  santa: {
+    name: "Santa",
+    cost: 0,
+    moveSpeed: 1,
+    fireRate: 1,
+    special: "Classic hero",
+  },
+  msClaus: {
+    name: "Ms. Claus",
+    cost: 1000,
+    moveSpeed: 1.3,
+    fireRate: 1.5,
+    special: "Faster movement & shooting",
+  },
+  frosty: {
+    name: "Frosty",
+    cost: 2000,
+    moveSpeed: 1,
+    fireRate: 1,
+    special: "Shoots diagonal ornaments",
+  },
+  kasie: {
+    name: "Kasie",
+    cost: 10000,
+    moveSpeed: 1.6,
+    fireRate: 1,
+    special: "Joystick firing, fastest",
+  },
+};
+
 let lastTime = 0;
 let elapsed = 0;
 let spawnTimer = 0;
 let score = 0;
 let highScore = parseInt(localStorage.getItem("highScore"), 10) || 0;
+let totalPoints = parseInt(localStorage.getItem("totalPoints"), 10) || 0;
+let unlockedCharacters = JSON.parse(localStorage.getItem("unlockedCharacters")) || { santa: true };
+let selectedCharacter = localStorage.getItem("selectedCharacter") || "santa";
 let gameState = "loading";
 let level = 1;
 let levelMessageTimer = 0;
@@ -146,7 +188,7 @@ function resizeCanvas() {
 
 function updateScale() {
   const unit = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1);
-  santa.size = unit * SCALE.santa;
+  santa.size = unit * SCALE[selectedCharacter];
   if (gameState === "playing" || gameState === "over") {
     trees.forEach((tree) => {
       tree.size = unit * tree.scale;
@@ -328,24 +370,54 @@ function fireOrnament() {
 
   const unit = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1);
   const size = unit * SCALE.ornament;
-  ornaments.push({
-    x: santa.x,
-    y: santa.y - santa.size * 0.55,
-    size,
-    scale: SCALE.ornament,
-    speed: unit * 0.9,
-    fromSanta: true, // Mark as Santa-fired
-  });
-  // Rapid fire: 3x faster when power-up active
-  fireCooldown = rapidFireTimer > 0 ? 0.12 : 0.35;
+  
+  if (selectedCharacter === "frosty") {
+    // Frosty shoots two diagonal ornaments
+    ornaments.push({
+      x: santa.x,
+      y: santa.y - santa.size * 0.55,
+      size,
+      scale: SCALE.ornament,
+      speed: unit * 0.9,
+      diagonal: -0.3, // Left diagonal
+      fromSanta: true,
+    });
+    ornaments.push({
+      x: santa.x,
+      y: santa.y - santa.size * 0.55,
+      size,
+      scale: SCALE.ornament,
+      speed: unit * 0.9,
+      diagonal: 0.3, // Right diagonal
+      fromSanta: true,
+    });
+  } else if (selectedCharacter === "kasie") {
+    // Kasie has joystick firing - handled separately
+    return;
+  } else {
+    // Santa and Ms. Claus shoot straight
+    ornaments.push({
+      x: santa.x,
+      y: santa.y - santa.size * 0.55,
+      size,
+      scale: SCALE.ornament,
+      speed: unit * 0.9,
+      fromSanta: true,
+    });
+  }
+  
+  // Fire rate based on character
+  const baseFireRate = rapidFireTimer > 0 ? 0.12 : 0.35;
+  fireCooldown = baseFireRate / CHARACTERS[selectedCharacter].fireRate;
 }
 
 function updateSanta(dt) {
   const width = canvas.width / (window.devicePixelRatio || 1);
   const height = canvas.height / (window.devicePixelRatio || 1);
   const unit = Math.min(width, height);
-  // Speed boost: 1.5x faster when cocoa is active
-  const moveSpeed = unit * 0.6 * (speedBoostTimer > 0 ? 1.5 : 1);
+  // Character speed with cocoa boost
+  const characterSpeed = CHARACTERS[selectedCharacter].moveSpeed;
+  const moveSpeed = unit * 0.6 * characterSpeed * (speedBoostTimer > 0 ? 1.5 : 1);
 
   const inputX = joystickState.vector.x + (keyboardState.right ? 1 : 0) - (keyboardState.left ? 1 : 0);
   const inputY = joystickState.vector.y + (keyboardState.down ? 1 : 0) - (keyboardState.up ? 1 : 0);
@@ -355,19 +427,55 @@ function updateSanta(dt) {
 
   santa.x = Math.min(Math.max(santa.x, santa.size * 0.5), width - santa.size * 0.5);
   santa.y = Math.min(Math.max(santa.y, santa.size * 0.5), height - santa.size * 0.5);
+  
+  // Kasie auto-fires with joystick direction
+  if (selectedCharacter === "kasie" && (inputX !== 0 || inputY !== 0) && fireCooldown <= 0) {
+    const unit = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1);
+    const size = unit * SCALE.ornament;
+    const speed = unit * 0.9;
+    const magnitude = Math.hypot(inputX, inputY);
+    if (magnitude > 0) {
+      ornaments.push({
+        x: santa.x,
+        y: santa.y,
+        size,
+        scale: SCALE.ornament,
+        speedX: (inputX / magnitude) * speed,
+        speedY: (inputY / magnitude) * speed,
+        speed: speed,
+        fromSanta: true,
+      });
+      fireCooldown = rapidFireTimer > 0 ? 0.08 : 0.25;
+    }
+  }
 }
 
 function updateOrnaments(dt) {
   ornaments.forEach((ornament) => {
-    ornament.y -= ornament.speed * dt;
+    if (ornament.speedX !== undefined && ornament.speedY !== undefined) {
+      // Kasie's directional shots
+      ornament.x += ornament.speedX * dt;
+      ornament.y += ornament.speedY * dt;
+    } else if (ornament.diagonal !== undefined) {
+      // Frosty's diagonal shots
+      ornament.x += ornament.diagonal * ornament.speed * dt;
+      ornament.y -= ornament.speed * dt;
+    } else {
+      // Normal straight shots
+      ornament.y -= ornament.speed * dt;
+    }
   });
 
+  const width = canvas.width / (window.devicePixelRatio || 1);
+  const height = canvas.height / (window.devicePixelRatio || 1);
   for (let i = ornaments.length - 1; i >= 0; i -= 1) {
-    if (ornaments[i].y + ornaments[i].size < 0) {
-      const wasSantaFired = ornaments[i].fromSanta !== false; // Check if it was fired by Santa
+    const orn = ornaments[i];
+    if (orn.y + orn.size < 0 || orn.y - orn.size > height || 
+        orn.x + orn.size < 0 || orn.x - orn.size > width) {
+      const wasSantaFired = ornaments[i].fromSanta !== false;
       ornaments.splice(i, 1);
       if (wasSantaFired) {
-        combo = 0; // Only reset combo on Santa's missed shots
+        combo = 0; // Only reset combo on player's missed shots
       }
     }
   }
@@ -531,6 +639,7 @@ function checkCollisions() {
         // Award points based on combo: 1 point normally, 2 at 5x, 3 at 10x
         const points = combo >= 10 ? 3 : combo >= 5 ? 2 : 1;
         score += points;
+        totalPoints += points;
         scoreEl.textContent = score;
 
         // Check for level-up (every 10 trees)
@@ -667,15 +776,16 @@ function draw() {
     );
   });
 
-  const santaAspect = images.santa.naturalHeight / images.santa.naturalWidth || 1;
-  const santaW = santa.size;
-  const santaH = santa.size * santaAspect;
+  const characterImage = images[selectedCharacter];
+  const characterAspect = characterImage.naturalHeight / characterImage.naturalWidth || 1;
+  const characterW = santa.size;
+  const characterH = santa.size * characterAspect;
   ctx.drawImage(
-    images.santa,
-    santa.x - santaW * 0.5,
-    santa.y - santaH * 0.5,
-    santaW,
-    santaH
+    characterImage,
+    santa.x - characterW * 0.5,
+    santa.y - characterH * 0.5,
+    characterW,
+    characterH
   );
 
   // Draw reindeer helper
@@ -866,18 +976,109 @@ function endGame() {
     highScore = score;
     localStorage.setItem("highScore", highScore);
   }
+  
+  // Save total points
+  localStorage.setItem("totalPoints", totalPoints);
 
   overlayTitle.textContent = isNewBest ? "New Best!" : "Game Over";
   const bestText = highScore > 0 ? ` Best: ${highScore}.` : "";
-  overlayMessage.textContent = `You cleared ${score} tree${score === 1 ? "" : "s"}.${bestText} Tap to try again.`;
-  startButton.textContent = "Play Again";
+  const totalText = `\n\nTotal Points: ${totalPoints}`;
+  overlayMessage.textContent = `You cleared ${score} tree${score === 1 ? "" : "s"}.${bestText}${totalText}\n\nTap to return to menu.`;
+  startButton.textContent = "Character Select";
+}
+
+function showCharacterSelect() {
+  overlayTitle.textContent = "Select Character";
+  overlayMessage.style.display = "none";
+  characterSelect.style.display = "block";
+  startButton.textContent = "Play";
+  
+  // Add total points display
+  let totalPointsDiv = characterSelect.querySelector(".total-points");
+  if (!totalPointsDiv) {
+    totalPointsDiv = document.createElement("div");
+    totalPointsDiv.className = "total-points";
+    characterSelect.insertBefore(totalPointsDiv, characterGrid);
+  }
+  totalPointsDiv.textContent = `Total Points: ${totalPoints}`;
+  
+  renderCharacters();
+}
+
+function renderCharacters() {
+  characterGrid.innerHTML = "";
+  
+  Object.entries(CHARACTERS).forEach(([key, char]) => {
+    const card = document.createElement("div");
+    card.className = "character-card";
+    
+    const isUnlocked = unlockedCharacters[key] || totalPoints >= char.cost;
+    const isSelected = key === selectedCharacter;
+    
+    if (!isUnlocked && char.cost > 0) {
+      card.classList.add("locked");
+    }
+    if (isSelected) {
+      card.classList.add("selected");
+    }
+    
+    const img = document.createElement("img");
+    img.src = key === "frosty" ? "snowman.png" : `${key === "msClaus" ? "Ms_Clause" : key}.png`;
+    img.alt = char.name;
+    
+    const name = document.createElement("div");
+    name.className = "character-name";
+    name.textContent = char.name;
+    
+    const cost = document.createElement("div");
+    cost.className = "character-cost";
+    if (char.cost === 0) {
+      cost.textContent = "FREE";
+    } else if (isUnlocked) {
+      cost.textContent = "UNLOCKED";
+    } else {
+      cost.textContent = `${char.cost} points`;
+    }
+    
+    const special = document.createElement("div");
+    special.className = "character-special";
+    special.textContent = char.special;
+    
+    card.appendChild(img);
+    card.appendChild(name);
+    card.appendChild(cost);
+    card.appendChild(special);
+    
+    card.addEventListener("click", () => {
+      if (isUnlocked || totalPoints >= char.cost) {
+        if (!isUnlocked && char.cost > 0) {
+          // Purchase character
+          totalPoints -= char.cost;
+          unlockedCharacters[key] = true;
+          localStorage.setItem("totalPoints", totalPoints);
+          localStorage.setItem("unlockedCharacters", JSON.stringify(unlockedCharacters));
+        }
+        selectedCharacter = key;
+        localStorage.setItem("selectedCharacter", selectedCharacter);
+        renderCharacters();
+      }
+    });
+    
+    characterGrid.appendChild(card);
+  });
 }
 
 function startGame() {
+  if (characterSelect.style.display !== "none") {
+    characterSelect.style.display = "none";
+    overlayMessage.style.display = "block";
+  }
+  
   resetGame();
+  updateScale(); // Update scale for selected character
   overlayTitle.textContent = "Ready to Play?";
   overlayMessage.textContent =
-    "Move Santa with the joystick. Tap Fire to launch ornaments. Stop the trees before they land.";
+    `Move ${CHARACTERS[selectedCharacter].name} with the joystick. ${selectedCharacter === 'kasie' ? 'Aim joystick to fire!' : 'Tap Fire to launch ornaments.'} Stop the trees before they land.`;
   startButton.textContent = "Start";
   setGameState("playing");
   startMusic();
@@ -946,6 +1147,9 @@ function loadImages() {
   overlayMessage.textContent = "Warming up the sleigh and sharpening the ornaments.";
   const entries = [
     { key: "santa", src: "Santa.png" },
+    { key: "msClaus", src: "Ms_Clause.png" },
+    { key: "frosty", src: "snowman.png" },
+    { key: "kasie", src: "kasie.png" },
     { key: "tree", src: "tree.png" },
     { key: "ornament", src: "ornament.png" },
     { key: "stocking", src: "stocking.png" },
@@ -968,12 +1172,13 @@ function loadImages() {
         setGameState("ready");
         resetGame();
         startButton.disabled = false;
-        overlayTitle.textContent = "How to Play";
+        overlayTitle.textContent = "Welcome!";
         const bestText = highScore > 0 ? `\n\nBest: ${highScore} trees` : "";
         overlayMessage.textContent =
-          `Move Santa with the joystick (or WASD/arrows). Tap Fire (or Space) to launch ornaments at falling trees.\n\n` +
-          `Catch stockings for rapid fire! Avoid coal (-5 pts).\n\n` +
-          `Hit trees in a row to build combos: 5x = 2pts, 10x = 3pts per tree. Miss and combo resets!${bestText}`;
+          `Save Christmas by stopping the falling trees!\n\n` +
+          `Collect points to unlock new characters with unique abilities.\n\n` +
+          `Total Points: ${totalPoints}${bestText}`;
+        startButton.textContent = "Select Character";
       }
     };
   });
@@ -995,13 +1200,24 @@ fireButton.addEventListener("pointerdown", (event) => {
   fireOrnament();
 });
 
-startButton.addEventListener("click", startGame);
+startButton.addEventListener("click", () => {
+  if (gameState === "ready" || gameState === "over") {
+    showCharacterSelect();
+  } else if (characterSelect.style.display !== "none") {
+    startGame();
+  }
+});
 
 document.getElementById("musicButton").addEventListener("click", toggleMusic);
 
-overlay.addEventListener("click", () => {
-  if (gameState === "ready" || gameState === "over") {
-    startGame();
+overlay.addEventListener("click", (event) => {
+  // Only handle clicks outside the overlay card
+  if (event.target === overlay) {
+    if (gameState === "ready" || gameState === "over") {
+      if (characterSelect.style.display === "none") {
+        showCharacterSelect();
+      }
+    }
   }
 });
 

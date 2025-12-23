@@ -312,3 +312,80 @@ body {
     inset: calc(10px + env(safe-area-inset-top)) 10px auto 10px;
   }
 }
+
+.character-select {
+  margin: 20px 0;
+}
+
+.character-select h2 {
+  font-family: "Impact", "Arial Black", sans-serif;
+  color: var(--evergreen);
+  font-size: 22px;
+  margin-bottom: 15px;
+}
+
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.character-card {
+  background: var(--ui-glass);
+  border: 3px solid transparent;
+  border-radius: 12px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  text-align: center;
+}
+
+.character-card:hover:not(.locked) {
+  border-color: var(--gold);
+  transform: scale(1.05);
+}
+
+.character-card.selected {
+  border-color: var(--evergreen);
+  background: rgba(27, 94, 32, 0.15);
+}
+
+.character-card.locked {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.character-card img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  margin-bottom: 5px;
+}
+
+.character-name {
+  font-weight: bold;
+  color: var(--crimson);
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+
+.character-cost {
+  font-size: 12px;
+  color: var(--evergreen);
+  font-weight: bold;
+}
+
+.character-special {
+  font-size: 11px;
+  color: #635348;
+  margin-top: 3px;
+}
+
+.total-points {
+  text-align: center;
+  font-size: 16px;
+  margin: 15px 0;
+  color: var(--evergreen);
+  font-weight: bold;
+}
