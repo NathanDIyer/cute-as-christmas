@@ -1,7 +1,7 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const VERSION = "v1.0";
+const VERSION = "v2.0";
 
 const scoreEl = document.getElementById("score");
 const overlay = document.getElementById("overlay");

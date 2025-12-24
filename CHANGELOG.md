@@ -1,6 +1,6 @@
 # Cute As Christmas - Documentation
 
-## Version: 1.0
+## Version: 2.0
 
 A cozy holiday arcade game where you guide Santa, fire ornaments, and save the forest from falling trees!
 
@@ -26,10 +26,8 @@ Stop the falling trees before they reach the ground by hitting them with ornamen
 
 ### Scoring
 - **Base**: 1 point per tree
-- **5x Combo**: 2 points per tree
-- **10x Combo**: 3 points per tree
 
-Combos build when you hit trees consecutively. Missing a shot (ornament leaves screen) resets your combo!
+Combos build when you hit trees consecutively and display festive messages! Missing a shot (ornament leaves screen) resets your combo.
 
 ### Power-ups & Hazards
 - **Stocking**: Grants 5 seconds of rapid fire
@@ -43,6 +41,19 @@ Combos build when you hit trees consecutively. Missing a shot (ornament leaves s
 ---
 
 ## Changelog
+
+### v2.0 - December 2025
+- **NEW: Character System** - Unlock and play as different characters with unique abilities
+  - Santa: Default character with balanced gameplay
+  - Kasie: Dual joystick system with enhanced mobility 
+- **NEW: Character Shop** - Spend points to unlock new characters (one-time purchases)
+- **UPDATED: Combo Display** - Festive Christmas-themed styling with gold outline and shadows
+  - Christmas colors (red, green, gold) replace basic green
+  - Georgia serif font for more elegant appearance
+  - Removed bonus point multipliers (reset scoring to 1 point per hit)
+  - Enhanced combo messages: "NICE LIST!", "MERRY CHRISTMAS!", "HO HO HO!", etc.
+- **NEW: Additional Powerups** - Snowflake and Hot Cocoa powerups added
+- **IMPROVED: UI Polish** - Better visual consistency and professional appearance
 
 ### v1.0 - December 2025
 - Initial release with combo system
