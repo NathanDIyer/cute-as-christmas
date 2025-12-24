@@ -662,8 +662,8 @@ function checkCollisions() {
         trees.splice(i, 1);
         ornaments.splice(j, 1);
         combo += 1;
-        // Award points based on combo: 1 point normally, 2 at 5x, 3 at 10x
-        const points = combo >= 10 ? 3 : combo >= 5 ? 2 : 1;
+        // Award 1 point per hit (users must earn bonus points again)
+        const points = 1;
         score += points;
         totalPoints += points;
         scoreEl.textContent = score;
@@ -895,12 +895,19 @@ function draw() {
   if (combo >= 2) {
     ctx.save();
     const multiplier = combo >= 10 ? 3 : combo >= 5 ? 2 : 1;
-    ctx.fillStyle = multiplier >= 3 ? "#ffd700" : multiplier >= 2 ? "#ff8800" : "#44ff44";
-    ctx.strokeStyle = "#000000";
-    ctx.lineWidth = 3;
-    ctx.font = `bold ${Math.min(width, height) * 0.06}px sans-serif`;
+    // Christmas-themed colors: festive red, gold, and Christmas green
+    ctx.fillStyle = multiplier >= 3 ? "#ffd700" : multiplier >= 2 ? "#dc143c" : "#228b22";
+    ctx.strokeStyle = "#ffd700";
+    ctx.lineWidth = 4;
+    // More festive font styling
+    ctx.font = `bold ${Math.min(width, height) * 0.06}px Georgia, serif`;
     ctx.textAlign = "right";
     ctx.textBaseline = "top";
+    // Add subtle shadow for depth
+    ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 1;
     // Christmas-themed combo messages
     let comboText = "";
     if (combo >= 25) {
@@ -916,9 +923,13 @@ function draw() {
     } else {
       comboText = `${combo}x COMBO`;
     }
-    const pointsText = multiplier > 1 ? ` (${multiplier}pts)` : "";
-    ctx.strokeText(comboText + pointsText, width - 10, 80);
-    ctx.fillText(comboText + pointsText, width - 10, 80);
+    ctx.strokeText(comboText, width - 10, 80);
+    ctx.fillText(comboText, width - 10, 80);
+    // Clear shadow for next elements
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
     ctx.restore();
   }
 
