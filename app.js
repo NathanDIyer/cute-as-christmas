@@ -1064,7 +1064,7 @@ function renderCharacters() {
     }
     
     const img = document.createElement("img");
-    img.src = key === "frosty" ? "snowman.png" : `${key === "msClaus" ? "Ms_Clause" : key}.png`;
+    img.src = key === "frosty" ? "snowman.png" : key === "msClaus" ? "Ms_Clause.png" : key === "santa" ? "Santa.png" : `${key}.png`;
     img.alt = char.name;
     
     const name = document.createElement("div");
