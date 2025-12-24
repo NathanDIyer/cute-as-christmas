@@ -126,7 +126,17 @@ let elapsed = 0;
 let spawnTimer = 0;
 let score = 0;
 let highScore = parseInt(localStorage.getItem("highScore"), 10) || 0;
+
+// Reset invalid totalPoints from testing
 let totalPoints = parseInt(localStorage.getItem("totalPoints"), 10) || 0;
+if (totalPoints >= 15000 && !localStorage.getItem("v2Reset")) {
+  totalPoints = 0;
+  localStorage.setItem("totalPoints", 0);
+  localStorage.setItem("v2Reset", "true");
+  // Reset unlocked characters except Santa
+  localStorage.setItem("unlockedCharacters", JSON.stringify({ santa: true }));
+}
+
 let unlockedCharacters = JSON.parse(localStorage.getItem("unlockedCharacters")) || { santa: true };
 let selectedCharacter = localStorage.getItem("selectedCharacter") || "santa";
 let gameState = "loading";
