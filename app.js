@@ -126,9 +126,7 @@ let elapsed = 0;
 let spawnTimer = 0;
 let score = 0;
 let highScore = parseInt(localStorage.getItem("highScore"), 10) || 0;
-// Testing: Force 15000 points to unlock all characters
-let totalPoints = 15000;
-localStorage.setItem("totalPoints", totalPoints);
+let totalPoints = parseInt(localStorage.getItem("totalPoints"), 10) || 0;
 let unlockedCharacters = JSON.parse(localStorage.getItem("unlockedCharacters")) || { santa: true };
 let selectedCharacter = localStorage.getItem("selectedCharacter") || "santa";
 let gameState = "loading";
