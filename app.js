@@ -1773,8 +1773,8 @@ function draw() {
     ctx.restore();
   }
 
-  // Draw powerup indicators
-  let powerupY = 10;
+  // Draw powerup indicators (below the header banner)
+  let powerupY = 90;
   if (slowMoTimer > 0) {
     ctx.save();
     ctx.fillStyle = "#44aaff";
@@ -1822,8 +1822,8 @@ function draw() {
     } else {
       comboText = `${combo}x COMBO`;
     }
-    ctx.strokeText(comboText, width - 10, 80);
-    ctx.fillText(comboText, width - 10, 80);
+    ctx.strokeText(comboText, width - 10, 90);
+    ctx.fillText(comboText, width - 10, 90);
     // Clear shadow for next elements
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
