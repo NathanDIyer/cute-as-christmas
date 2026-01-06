@@ -340,8 +340,8 @@ function spawnTree() {
   const padding = size * 0.7;
   
   // Tree speed varies slightly but scales with level
-  const baseSpeed = 0.12 + Math.random() * 0.08;
-  const levelSpeedBonus = Math.min((level - 1) * 0.01, 0.06); // Max 6% bonus
+  const baseSpeed = 0.14 + Math.random() * 0.08;
+  const levelSpeedBonus = Math.min((level - 1) * 0.03, 0.18); // 3% per level, max 18% bonus
   
   trees.push({
     x: padding + Math.random() * (width - padding * 2),
@@ -444,9 +444,25 @@ function createLightning(fromX, fromY, toX, toY) {
     fromY: fromY,
     toX: toX,
     toY: toY,
-    timer: 0.15, // Quick flash
-    opacity: 1
+    timer: 0.4, // Longer visible flash
+    opacity: 1,
+    segments: [] // Pre-generate jagged segments for consistent look
   });
+  // Pre-generate the jagged path so it doesn't flicker randomly
+  const bolt = lightningBolts[lightningBolts.length - 1];
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+  const numSegments = 6;
+  bolt.segments.push({ x: fromX, y: fromY });
+  for (let i = 1; i < numSegments; i++) {
+    const progress = i / numSegments;
+    const x = fromX + dx * progress;
+    const y = fromY + dy * progress;
+    const offsetX = (Math.random() - 0.5) * 30;
+    const offsetY = (Math.random() - 0.5) * 30;
+    bolt.segments.push({ x: x + offsetX, y: y + offsetY });
+  }
+  bolt.segments.push({ x: toX, y: toY });
 }
 
 function spawnBoss() {
@@ -847,8 +863,8 @@ function updateOrnaments(dt) {
 
 function updateTrees(dt) {
   const height = canvas.height / (window.devicePixelRatio || 1);
-  // Level-based difficulty scaling (more manageable progression)
-  const difficulty = 1 + (level - 1) * 0.08; // 8% speed increase per level
+  // Level-based difficulty scaling (faster progression)
+  const difficulty = 1 + (level - 1) * 0.15; // 15% speed increase per level
   // Slow motion: trees move at 40% speed when snowflake is active
   const slowFactor = slowMoTimer > 0 ? 0.4 : 1;
   trees.forEach((tree) => {
@@ -954,8 +970,8 @@ function updateLightning(dt) {
   for (let i = lightningBolts.length - 1; i >= 0; i--) {
     const lightning = lightningBolts[i];
     lightning.timer -= dt;
-    lightning.opacity = lightning.timer / 0.15; // Fade out
-    
+    lightning.opacity = lightning.timer / 0.4; // Fade out over 0.4 seconds
+
     // Remove finished lightning
     if (lightning.timer <= 0) {
       lightningBolts.splice(i, 1);
@@ -1376,7 +1392,7 @@ function checkCollisions() {
           createExplosion(tree.x, tree.y);
           
           // Gold ornament explosion - damage nearby trees with lightning
-          const explosionRadius = 50;
+          const explosionRadius = 120;
           for (let k = trees.length - 1; k >= 0; k--) {
             const otherTree = trees[k];
             const explosionDx = otherTree.x - tree.x;
@@ -1691,41 +1707,38 @@ function draw() {
   lightningBolts.forEach((lightning) => {
     ctx.save();
     ctx.globalAlpha = lightning.opacity;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-    ctx.lineWidth = 4;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = "rgba(0, 150, 255, 0.8)";
-    
-    // Draw jagged lightning bolt
+
+    // Draw outer glow (golden yellow)
+    ctx.strokeStyle = "rgba(255, 215, 0, 0.8)";
+    ctx.lineWidth = 12;
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = "rgba(255, 215, 0, 0.9)";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    // Draw jagged lightning bolt using pre-generated segments
     ctx.beginPath();
-    
-    const dx = lightning.toX - lightning.fromX;
-    const dy = lightning.toY - lightning.fromY;
-    const segments = 5;
-    
-    ctx.moveTo(lightning.fromX, lightning.fromY);
-    
-    for (let i = 1; i < segments; i++) {
-      const progress = i / segments;
-      const x = lightning.fromX + dx * progress;
-      const y = lightning.fromY + dy * progress;
-      
-      // Add random offset to make it jagged
-      const offsetX = (Math.random() - 0.5) * 20;
-      const offsetY = (Math.random() - 0.5) * 20;
-      
-      ctx.lineTo(x + offsetX, y + offsetY);
+    if (lightning.segments && lightning.segments.length > 0) {
+      ctx.moveTo(lightning.segments[0].x, lightning.segments[0].y);
+      for (let i = 1; i < lightning.segments.length; i++) {
+        ctx.lineTo(lightning.segments[i].x, lightning.segments[i].y);
+      }
     }
-    
-    ctx.lineTo(lightning.toX, lightning.toY);
     ctx.stroke();
-    
-    // Add bright core
+
+    // Draw middle layer (white-yellow)
+    ctx.strokeStyle = "rgba(255, 255, 200, 0.95)";
+    ctx.lineWidth = 6;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "rgba(255, 255, 255, 0.8)";
+    ctx.stroke();
+
+    // Draw bright core (pure white)
     ctx.strokeStyle = "rgba(255, 255, 255, 1)";
-    ctx.lineWidth = 2;
-    ctx.shadowBlur = 5;
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 8;
     ctx.stroke();
-    
+
     ctx.restore();
   });
 
